@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"golang.org/x/crypto/acme/autocert"
 	"io"
 	"log"
 	"net/http"
@@ -34,8 +35,8 @@ func main() {
 	r.Path("/stats/").HandlerFunc(fileHandler("./stats.html"))
 	r.Path("/").HandlerFunc(fileHandler("./index.html"))
 
-	log.Println("Listening at :8080")
-	if err := http.ListenAndServe(":8080", r); err != nil {
+	log.Println("Listening!")
+	if err := http.Serve(autocert.NewListener("weberc2.com"), r); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

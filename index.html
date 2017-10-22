@@ -25,7 +25,10 @@
                     "MODE_GAME": () => {
                         pre.innerHTML = rsp.game_state.window;
                         if(rsp.game_state.winner) {
-                            message.innerHTML = `WINNER!: ${rsp.game_state.winner}`;
+                            message.innerHTML = `WINNER!:
+                                ${rsp.game_state.winner}`;
+                        } else {
+                            message.innerHTML = "";
                         }
                     },
                 }[rsp.mode]())

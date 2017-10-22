@@ -1,0 +1,27 @@
+<html>
+    <head>
+    <script>
+const onLoad = () => {
+    const lobbiesDisplay = document.getElementById("lobbies-display");
+    console.log(window.location.host);
+    const sock = new WebSocket(`ws://${window.location.host}/stats-socket/`);
+
+    sock.addEventListener("message", (e) => {
+        lobbiesDisplay.innerHTML = "";
+        const lobbies = JSON.parse(e.data);
+        for(var i = 0; i < lobbies.length; i++) {
+            const lobby = lobbies[i];
+            const elt = document.createElement("p");
+            lobbiesDisplay.appendChild(elt);
+            elt.innerHTML = `Players: ${lobby.players} / ${lobby.total} |
+                In progress: ${lobby.in_progress}`;
+        };
+    });
+};
+    </script>
+    </head>
+    <body onload="onLoad()">
+        <div id="lobbies-display">
+        </div>
+    </body>
+</html>

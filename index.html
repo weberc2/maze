@@ -1,0 +1,54 @@
+<html>
+    <head>
+    <script>
+        const MODE_MATCHMAKING = "MODE_MATCHMAKING";
+        const MODE_LOBBY       = "MODE_LOBBY";
+        const MODE_GAME        = "MODE_GAME";
+
+        const onLoad = () => {
+            const pre     = document.getElementById("pre");
+            const message = document.getElementById("message");
+            const sock    = new WebSocket(`ws://${window.location.host}/user-socket/`)
+
+            document.getElementById("rtmm-button").addEventListener(
+                "click",
+                () => sock.send("rtmm"),
+            );
+
+            sock.addEventListener("message", (e) => {
+                const rsp = JSON.parse(e.data);
+                ({
+                    "MODE_LOBBY": () => {
+                        pre.innerHTML = `${rsp.lobby_state.players} / ${rsp.lobby_state.total} players`;
+                        message.innerHTML = "";
+                    },
+                    "MODE_GAME": () => {
+                        pre.innerHTML = rsp.game_state.window;
+                        if(rsp.game_state.winner) {
+                            message.innerHTML = `WINNER!: ${rsp.game_state.winner}`;
+                        }
+                    },
+                }[rsp.mode]())
+            });
+
+            window.addEventListener("keydown", (e) => {
+                if(e.key == "ArrowLeft") {
+                    sock.send("left");
+                } else if(e.key == "ArrowRight") {
+                    sock.send("right");
+                } else if(e.key == "ArrowUp") {
+                    sock.send("up");
+                } else if(e.key == "ArrowDown") {
+                    sock.send("down");
+                }
+                console.log(e.key);
+            });
+        };
+    </script>
+    </head>
+    <body onload="onLoad()">
+        <pre id="pre"></pre>
+        <p id="message"></p>
+        <button id="rtmm-button">Return to Matchmaking</button>
+    </body>
+</html>

@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"golang.org/x/crypto/acme/autocert"
 	"io"
 	"log"
 	"net/http"
 	"os"
+
+	"golang.org/x/crypto/acme/autocert"
 
 	"github.com/gorilla/mux"
 )

@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"strconv"
 	"time"
@@ -44,6 +46,18 @@ func (rww *responseWriterWrapper) WriteHeader(s int) {
 	rww.w.WriteHeader(s)
 }
 
+type hijackingResponseWriterWrapper struct {
+	responseWriterWrapper
+}
+
+func (hrrw *hijackingResponseWriterWrapper) Hijack() (
+	net.Conn,
+	*bufio.ReadWriter,
+	error,
+) {
+	return hrrw.responseWriterWrapper.w.(http.Hijacker).Hijack()
+}
+
 func HTTPHandlerFunc(out io.Writer, hf HandlerFunc) http.HandlerFunc {
 	// Spin up a separate goroutine for serialization so as to not stall
 	// the requests. The input channel holds 1024 objects before blocking, so
@@ -61,10 +75,19 @@ func HTTPHandlerFunc(out io.Writer, hf HandlerFunc) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := Logger{}
+
+		// make sure the response writer supports hijacking; this is clunky,
+		// but probably the best we can do due to limitations with http library
+		// design
 		rww := responseWriterWrapper{w: w, statusCode: http.StatusOK}
+		if _, ok := w.(http.Hijacker); ok {
+			w = &hijackingResponseWriterWrapper{rww}
+		} else {
+			w = &rww
+		}
 
 		start := time.Now()
-		hf(&rww, r, &logger)
+		hf(w, r, &logger)
 		logger.Log(map[string]map[string]string{
 			"request": map[string]string{
 				"id":          uuid.New(),

@@ -1,12 +1,10 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/kr/pretty"
 )
 
 var upgrader = websocket.Upgrader{
@@ -18,10 +16,14 @@ type Server struct {
 	GameManager GameManager
 }
 
-func (s *Server) Stats(w http.ResponseWriter, r *http.Request) {
+func (s *Server) Stats(
+	w http.ResponseWriter,
+	r *http.Request,
+	logger *Logger,
+) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println("Error upgrading to websocket connection:", err)
+		logger.Logf("Error upgrading to websocket connection: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -32,23 +34,22 @@ func (s *Server) Stats(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		<-t.C
-		pretty.Println(s.GameManager.State())
 		if err := conn.WriteJSON(s.GameManager.State()); err != nil {
-			log.Println("Error writing to websocket:", err)
+			logger.Logf("Error writing to websocket: %v", err)
 			return
 		}
 	}
 }
 
-func (s *Server) User(w http.ResponseWriter, r *http.Request) {
+func (s *Server) User(w http.ResponseWriter, r *http.Request, logger *Logger) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println("Error upgrading to websocket connection:", err)
+		logger.Logf("Error upgrading to websocket connection: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	defer conn.Close()
 
-	userSession := NewUserSession(&s.GameManager, conn)
+	userSession := NewUserSession(&s.GameManager, conn, logger)
 	userSession.Run()
 }

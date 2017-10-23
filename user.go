@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -66,10 +65,15 @@ type UserSession struct {
 	lock          sync.Mutex
 	playerSession *PlayerSession
 	gameManager   *GameManager
+	logger        *Logger
 }
 
-func NewUserSession(gm *GameManager, conn *websocket.Conn) *UserSession {
-	return &UserSession{conn: conn, gameManager: gm}
+func NewUserSession(
+	gm *GameManager,
+	conn *websocket.Conn,
+	logger *Logger,
+) *UserSession {
+	return &UserSession{conn: conn, gameManager: gm, logger: logger}
 }
 
 func (user *UserSession) GameStart(playerSession PlayerSession) {
@@ -82,7 +86,10 @@ func (user *UserSession) NotifyUserState(userState UserState) {
 	user.writeLock.Lock()
 	defer user.writeLock.Unlock()
 	if err := user.conn.WriteJSON(userState); err != nil {
-		log.Println("Error writing UserState to websocket (terminating):", err)
+		user.logger.Logf(
+			"Error writing UserState to websocket (terminating): %v",
+			err,
+		)
 		// There shouldn't be any errors marshaling json, so any errors must be
 		// I/O errors; if there is an I/O error, we should probably just quit
 		user.quit()
@@ -103,9 +110,7 @@ func (user *UserSession) ClearGame() {
 }
 
 func (user *UserSession) returnToMatchMaking(lobby *Lobby) error {
-	println("dropping user from gamemanager")
 	user.gameManager.Drop(user)
-	println("joining new lobby")
 	return user.lobbyMode(user.gameManager.Join(user))
 }
 
@@ -119,14 +124,13 @@ func (user *UserSession) gameMode(lobby *Lobby) error {
 	for {
 		_, data, err := user.conn.ReadMessage()
 		if err != nil {
-			log.Println("Error reading message:", err)
+			user.logger.Logf("Error reading message: %v", err)
 			user.quit()
 			return err
 		}
 
 		switch ev := string(data); ev {
 		case "rtmm":
-			println("received rtmm")
 			return user.returnToMatchMaking(lobby)
 		case "left":
 			user.playerSession.Move(Left)
@@ -141,7 +145,6 @@ func (user *UserSession) gameMode(lobby *Lobby) error {
 }
 
 func (user *UserSession) lobbyMode(lobby *Lobby) error {
-	println("entering lobby mode")
 	lobby.Broadcast()
 	for {
 		if user.isGameMode() {

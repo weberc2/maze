@@ -2,6 +2,7 @@ package main
 
 import (
 	"sync"
+	"time"
 )
 
 type GameSession struct {
@@ -28,15 +29,21 @@ func (gs *GameSession) broadcast() {
 	if gs.Game.Winner != 0 {
 		winner = string(gs.Game.Winner)
 	}
+	solvedTimes := make(map[string]time.Duration, len(gs.Game.SolvedTimes))
+	for pid, duration := range gs.Game.SolvedTimes {
+		solvedTimes[string(pid)] = duration
+	}
 
 	for pid, session := range gs.UserMap {
 		session.NotifyUserState(UserState{
 			Mode: ModeGame,
 			GameState: &GameState{
-				Token:   pid,
-				Window:  gs.Game.PlayerWindow(pid),
-				Players: players,
-				Winner:  winner,
+				Token:       pid,
+				Window:      gs.Game.PlayerWindow(pid),
+				Players:     players,
+				Winner:      winner,
+				SolvedTimes: solvedTimes,
+				GameStart:   gs.Game.Start,
 			},
 		})
 	}

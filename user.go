@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -47,10 +48,12 @@ type LobbyState struct {
 }
 
 type GameState struct {
-	Token   rune   `json:"token"`
-	Window  string `json:"window"`
-	Players []rune `json:"players"`
-	Winner  string `json:"winner,omitempty"`
+	Token       rune                     `json:"token"`
+	Window      string                   `json:"window"`
+	Players     []rune                   `json:"players"`
+	Winner      string                   `json:"winner,omitempty"`
+	SolvedTimes map[string]time.Duration `json:"solved_times,omitempty"`
+	GameStart   time.Time                `json:"game_start"`
 }
 
 type UserState struct {

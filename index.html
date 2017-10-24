@@ -6,9 +6,12 @@
         const MODE_GAME        = "MODE_GAME";
 
         const onLoad = () => {
-            const pre     = document.getElementById("pre");
-            const message = document.getElementById("message");
-            const sock    = new WebSocket(`ws://${window.location.host}/user-socket/`)
+            const pre         = document.getElementById("pre");
+            const message     = document.getElementById("message");
+            const solvedTimes = document.getElementById("solved-times");
+            const sock = new WebSocket(
+                `ws://${window.location.host}/user-socket/`,
+            )
 
             document.getElementById("rtmm-button").addEventListener(
                 "click",
@@ -21,6 +24,7 @@
                     "MODE_LOBBY": () => {
                         pre.innerHTML = `${rsp.lobby_state.players} / ${rsp.lobby_state.total} players`;
                         message.innerHTML = "";
+                        solvedTimes.innerHTML = "";
                     },
                     "MODE_GAME": () => {
                         pre.innerHTML = rsp.game_state.window;
@@ -29,6 +33,36 @@
                                 ${rsp.game_state.winner}`;
                         } else {
                             message.innerHTML = "";
+                        }
+
+                        solvedTimes.innerHTML = "";
+                        if(rsp.game_state.solved_times) {
+                            const entries = (obj) => {
+                                const out = [];
+                                for(var key in obj) {
+                                    out.push([key, obj[key]]);
+                                }
+                                return out;
+                            };
+                            const times = entries(rsp.game_state.solved_times)
+                                .map(([pid, dur]) => [pid, dur / 1e9])
+                                .sort(([lpid, ldur], [rpid, rdur]) => {
+                                    if(ldur < rdur) { return -1; }
+                                    if(ldur == rdur) {
+                                        if(lpid < rpid) { return -1; }
+                                        if(lpid == rpid) { return 0; }
+                                        if(lpid > rpid) { return 1; }
+                                    }
+                                    if(ldur > rdur) { return 1; }
+                                });
+
+                            for(var i = 0; i < times.length; i++) {
+                                var pid, time;
+                                [pid, time] = times[i];
+                                const elt = document.createElement("li");
+                                elt.innerHTML = `${pid}: ${time}`;
+                                solvedTimes.appendChild(elt);
+                            }
                         }
                     },
                 }[rsp.mode]())
@@ -44,7 +78,6 @@
                 } else if(e.key == "ArrowDown") {
                     sock.send("down");
                 }
-                console.log(e.key);
             });
         };
     </script>
@@ -52,6 +85,7 @@
     <body onload="onLoad()">
         <pre id="pre"></pre>
         <p id="message"></p>
+        <ol id="solved-times"></ol>
         <button id="rtmm-button">Return to Matchmaking</button>
     </body>
 </html>

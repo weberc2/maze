@@ -1,6 +1,9 @@
 package main
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
 
 type Lobby struct {
 	Mutex   sync.RWMutex
@@ -76,9 +79,11 @@ func (l *Lobby) Drop(user *UserSession) (bool, int) {
 func (l *Lobby) startGame() {
 	l.Game = &GameSession{
 		Game: Game{
-			Board:      GenerateBoard(seed, boardWidth, boardHeight),
-			Players:    make([]Player, len(l.Users)),
-			WindowSize: Point{41, 21},
+			Board:       GenerateBoard(seed, boardWidth, boardHeight),
+			Players:     make([]Player, len(l.Users)),
+			WindowSize:  Point{41, 21},
+			SolvedTimes: map[rune]time.Duration{},
+			Start:       time.Now(),
 		},
 		UserMap: make(map[rune]*UserSession, len(l.Users)),
 	}

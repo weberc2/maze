@@ -2,13 +2,16 @@ package main
 
 import (
 	"fmt"
+	"time"
 )
 
 type Game struct {
-	Board      Board
-	Players    []Player
-	WindowSize Point
-	Winner     rune // non-zero value indicates the game has been won
+	Board       Board
+	Players     []Player
+	WindowSize  Point
+	Start       time.Time
+	Winner      rune // non-zero value indicates the game has been won
+	SolvedTimes map[rune]time.Duration
 }
 
 func (g Game) InitPlayer(pid rune) Player {
@@ -16,12 +19,8 @@ func (g Game) InitPlayer(pid rune) Player {
 }
 
 func (g Game) SetPlayers(players []Player) Game {
-	return Game{
-		Board:      g.Board,
-		WindowSize: g.WindowSize,
-		Players:    players,
-		Winner:     g.Winner,
-	}
+	g.Players = players
+	return g
 }
 
 func (g Game) PlayerWindow(pid rune) string {
@@ -71,12 +70,30 @@ func (g Game) MapPlayer(pid rune, f func(p Player) Player) Game {
 }
 
 func (g Game) SetWinner(pid rune) Game {
-	return Game{
-		Players:    g.Players,
-		Board:      g.Board,
-		WindowSize: g.WindowSize,
-		Winner:     pid,
+	g.Winner = pid
+	return g
+}
+
+func (g Game) SetSolvedTimes(times map[rune]time.Duration) Game {
+	g.SolvedTimes = times
+	return g
+}
+
+func (g Game) recordFinishTime(pid rune) Game {
+	times := make(map[rune]time.Duration, len(g.SolvedTimes))
+	for pid, duration := range g.SolvedTimes {
+		times[pid] = duration
 	}
+	times[pid] = time.Since(g.Start)
+	return g.SetSolvedTimes(times)
+}
+
+func (g Game) playerFinished(pid rune) Game {
+	g = g.recordFinishTime(pid)
+	if g.Winner == 0 {
+		g = g.SetWinner(pid)
+	}
+	return g
 }
 
 func (g Game) PlayerMove(pid rune, dir Dir) Game {
@@ -86,12 +103,11 @@ func (g Game) PlayerMove(pid rune, dir Dir) Game {
 		if p.ID == pid {
 			if proposed := p.Pos.Translate(dir); g.Board.IsPath(proposed) {
 				players[i].Pos = proposed
-				if g.Winner == 0 && proposed == g.Board.End {
-					game := g.SetPlayers(players)
-					game.Winner = pid
-					return game
+				game := g.SetPlayers(players)
+				if proposed == g.Board.End {
+					game = game.playerFinished(pid)
 				}
-				return g.SetPlayers(players)
+				return game
 			}
 			return g
 		}

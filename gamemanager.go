@@ -7,8 +7,8 @@ import (
 
 var seed = time.Now().UnixNano()
 
-const boardWidth = 10
-const boardHeight = 5
+const boardWidth = 20
+const boardHeight = 10
 
 var playerTokens = []rune("@$")
 

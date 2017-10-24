@@ -80,6 +80,9 @@ func (g Game) SetSolvedTimes(times map[rune]time.Duration) Game {
 }
 
 func (g Game) recordFinishTime(pid rune) Game {
+	if _, found := g.SolvedTimes[pid]; found {
+		return g
+	}
 	times := make(map[rune]time.Duration, len(g.SolvedTimes))
 	for pid, duration := range g.SolvedTimes {
 		times[pid] = duration
